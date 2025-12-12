@@ -34,9 +34,8 @@ class Program
         // Call sentiment analysis
         DocumentSentiment documentSentiment = client.AnalyzeSentiment(inputText);
 
-        Console.WriteLine("INPUT TEXT:");
-        Console.WriteLine(inputText);
-        Console.WriteLine();
+        Console.WriteLine($"Text: {inputText}");
+
 
         Console.WriteLine($"Overall sentiment: {documentSentiment.Sentiment}");
         Console.WriteLine();
