@@ -1,57 +1,60 @@
-﻿using Azure;
+﻿using System;
+using System.Threading.Tasks;
+using Azure;
 using Azure.AI.TextAnalytics;
 using Microsoft.Extensions.Configuration;
-using System;
-using static System.Net.WebRequestMethods;
 
 class Program
 {
-    static void Main()
+    static async Task Main()
     {
+        // Load configuration
         var config = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: true)
-            .AddUserSecrets<Program>()       // <-- IMPORTANT
+            .AddUserSecrets<Program>()
             .AddEnvironmentVariables()
             .Build();
-
-
 
         string endpoint = config["AzureAI:Endpoint"];
         string apiKey = config["AzureAI:Key"];
 
         if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(apiKey))
         {
-            Console.WriteLine("ERROR: Missing Endpoint or Key. Add them using User Secrets.");
+            Console.WriteLine("ERROR: Missing AzureAI:Endpoint or AzureAI:Key in configuration.");
             return;
         }
 
         var credentials = new AzureKeyCredential(apiKey);
         var client = new TextAnalyticsClient(new Uri(endpoint), credentials);
 
-        // Text to analyze
-        string inputText = "I really love using Azure, but sometimes the documentation is confusing.";
+        var analyzer = new AzureTextAnalyzer(client);
 
-        // Call sentiment analysis
-        DocumentSentiment documentSentiment = client.AnalyzeSentiment(inputText);
-
-        Console.WriteLine($"Text: {inputText}");
-
-
-        Console.WriteLine($"Overall sentiment: {documentSentiment.Sentiment}");
+        Console.WriteLine("=== Azure AI Language Demo ===");
+        Console.WriteLine("Type a sentence (or just press Enter to exit).");
         Console.WriteLine();
 
-        Console.WriteLine("Sentence-level details:");
-        foreach (var sentence in documentSentiment.Sentences)
+        while (true)
         {
-            Console.WriteLine($"  Sentence: \"{sentence.Text}\"");
-            Console.WriteLine($"  Sentiment: {sentence.Sentiment}");
-            Console.WriteLine($"  Positive score: {sentence.ConfidenceScores.Positive:0.00}");
-            Console.WriteLine($"  Neutral score: {sentence.ConfidenceScores.Neutral:0.00}");
-            Console.WriteLine($"  Negative score: {sentence.ConfidenceScores.Negative:0.00}");
+            Console.Write("Input text: ");
+            string? text = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                Console.WriteLine("Exiting...");
+                break;
+            }
+
+            try
+            {
+                await analyzer.AnalyzeAllAsync(text);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("An error occurred while calling Azure AI Language:");
+                Console.WriteLine(ex.Message);
+            }
+
             Console.WriteLine();
         }
-
-        Console.WriteLine("Press any key to exit...");
-        Console.ReadKey();
     }
 }
